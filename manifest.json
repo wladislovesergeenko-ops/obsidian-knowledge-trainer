@@ -1,0 +1,9 @@
+{
+  "id": "knowledge-trainer",
+  "name": "Knowledge Trainer",
+  "version": "1.0.0",
+  "minAppVersion": "1.5.0",
+  "description": "AI-powered training from your notes: flashcards, quizzes, open questions",
+  "author": "Vladislav",
+  "isDesktopOnly": false
+}
