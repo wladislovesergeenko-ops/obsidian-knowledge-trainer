@@ -1,5 +1,7 @@
 import { ItemView, WorkspaceLeaf } from 'obsidian';
 import { VIEW_TYPE_TRAINER, Question, QuestionResult, SessionResult, TrainerSettings, IQuestionGenerator, NoteChunk, QuestionType } from '../types';
+import { ProgressTracker } from '../progress';
+import { QuestionCache } from '../cache';
 import { FlashcardComponent } from './flashcard-component';
 import { QuizComponent } from './quiz-component';
 import { OpenQuestionComponent } from './open-question-component';
@@ -9,6 +11,8 @@ import { SessionStartComponent } from './session-start-component';
 export class TrainerView extends ItemView {
     private settings!: TrainerSettings;
     private generator!: IQuestionGenerator;
+    private progressTracker!: ProgressTracker;
+    private cache!: QuestionCache;
     private availableChunks: NoteChunk[] = [];
     private noteTitle: string = '';
     private questions: Question[] = [];
@@ -43,6 +47,14 @@ export class TrainerView extends ItemView {
         this.generator = generator;
     }
 
+    setProgressTracker(tracker: ProgressTracker): void {
+        this.progressTracker = tracker;
+    }
+
+    setCache(cache: QuestionCache): void {
+        this.cache = cache;
+    }
+
     setNoteData(chunks: NoteChunk[], noteTitle: string): void {
         this.availableChunks = chunks;
         this.noteTitle = noteTitle;
@@ -66,13 +78,16 @@ export class TrainerView extends ItemView {
         this.currentIndex = 0;
         this.questionResults = [];
 
+        const dueCount = this.progressTracker ? this.progressTracker.getDueCards().length : 0;
+
         this.currentComponent = new SessionStartComponent(
             this.contentEl,
             this.availableChunks,
             this.noteTitle,
             async (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => {
                 await this.startSession(selectedChunks, types, count);
-            }
+            },
+            dueCount
         );
     }
 
@@ -83,26 +98,46 @@ export class TrainerView extends ItemView {
         const loading = this.contentEl.createDiv({ cls: 'kt-loading' });
         loading.setText('Генерация вопросов...');
 
-        try {
-            this.questions = await this.generator.generateQuestions(selectedChunks, types, count);
-        } catch (error) {
-            loading.setText('Ошибка при генерации вопросов. Попробуйте ещё раз.');
-            const retryBtn = this.contentEl.createEl('button', {
-                text: 'Назад',
-                cls: 'kt-start-btn',
-            });
-            retryBtn.addEventListener('click', () => this.showStartScreen());
-            return;
+        // Check cache (skip for mock data)
+        const useMock = this.settings?.useMockData;
+        const notePath = selectedChunks.length > 0 ? selectedChunks[0].notePath : '';
+        let contentHash = '';
+        let cached: Question[] | null = null;
+
+        if (!useMock && this.cache && notePath) {
+            contentHash = this.cache.computeHash(selectedChunks);
+            cached = this.cache.getQuestions(notePath, contentHash);
         }
 
-        if (this.questions.length === 0) {
-            loading.setText('Не удалось сгенерировать вопросы.');
-            const retryBtn = this.contentEl.createEl('button', {
-                text: 'Назад',
-                cls: 'kt-start-btn',
-            });
-            retryBtn.addEventListener('click', () => this.showStartScreen());
-            return;
+        if (cached && cached.length > 0) {
+            this.questions = cached;
+        } else {
+            try {
+                this.questions = await this.generator.generateQuestions(selectedChunks, types, count);
+            } catch (error) {
+                loading.setText('Ошибка при генерации вопросов. Попробуйте ещё раз.');
+                const retryBtn = this.contentEl.createEl('button', {
+                    text: 'Назад',
+                    cls: 'kt-start-btn',
+                });
+                retryBtn.addEventListener('click', () => this.showStartScreen());
+                return;
+            }
+
+            if (this.questions.length === 0) {
+                loading.setText('Не удалось сгенерировать вопросы.');
+                const retryBtn = this.contentEl.createEl('button', {
+                    text: 'Назад',
+                    cls: 'kt-start-btn',
+                });
+                retryBtn.addEventListener('click', () => this.showStartScreen());
+                return;
+            }
+
+            // Store in cache (skip for mock data)
+            if (!useMock && this.cache && notePath && contentHash) {
+                await this.cache.setQuestions(notePath, contentHash, this.questions);
+            }
         }
 
         this.currentIndex = 0;
@@ -145,6 +180,17 @@ export class TrainerView extends ItemView {
             };
 
             this.questionResults.push(result);
+
+            // Record review in progress tracker for spaced repetition
+            if (this.progressTracker) {
+                this.progressTracker.recordReview(
+                    question.id,
+                    question.sourceNote,
+                    question.type,
+                    score,
+                    timeMs
+                );
+            }
 
             if (question.type === 'flashcard') {
                 this.showQuestion(index + 1);
@@ -216,12 +262,15 @@ export class TrainerView extends ItemView {
             questionResults: this.questionResults,
         };
 
+        const progressStats = this.progressTracker ? this.progressTracker.getStats() : undefined;
+
         this.currentComponent = new ResultsComponent(
             this.contentEl,
             sessionResult,
             () => {
                 this.showStartScreen();
-            }
+            },
+            progressStats
         );
     }
 

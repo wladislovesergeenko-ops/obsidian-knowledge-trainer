@@ -1,19 +1,22 @@
-import { SessionResult } from '../types';
+import { SessionResult, ProgressData } from '../types';
 
 export class ResultsComponent {
     private container: HTMLElement;
     private result: SessionResult;
     private onRestart: () => void;
+    private progressStats?: ProgressData['stats'];
     private rootEl: HTMLElement | null = null;
 
     constructor(
         container: HTMLElement,
         result: SessionResult,
-        onRestart: () => void
+        onRestart: () => void,
+        progressStats?: ProgressData['stats']
     ) {
         this.container = container;
         this.result = result;
         this.onRestart = onRestart;
+        this.progressStats = progressStats;
         this.render();
     }
 
@@ -58,6 +61,31 @@ export class ResultsComponent {
             item.createSpan({ cls: `kt-result-icon ${iconCls}`, text: icon });
             item.createSpan({ cls: 'kt-result-type', text: qr.type });
             item.createSpan({ cls: 'kt-result-score', text: `${qr.score}/5` });
+        }
+
+        // Progress stats (spaced repetition)
+        if (this.progressStats) {
+            const statsSection = this.rootEl.createDiv({ cls: 'kt-progress-stats' });
+            statsSection.createEl('h3', { text: 'Общий прогресс' });
+
+            const statsGrid = statsSection.createDiv({ cls: 'kt-results-summary' });
+            this.createStatItem(statsGrid, 'Всего повторений', String(this.progressStats.totalReviews), '');
+            this.createStatItem(statsGrid, 'Серия дней', String(this.progressStats.streakDays), '');
+
+            const topicEntries = Object.entries(this.progressStats.masteryByTopic);
+            if (topicEntries.length > 0) {
+                const masterySection = statsSection.createDiv({ cls: 'kt-mastery-section' });
+                masterySection.createEl('h4', { text: 'Освоение по темам' });
+
+                for (const [topic, mastery] of topicEntries) {
+                    const masteryItem = masterySection.createDiv({ cls: 'kt-mastery-item' });
+                    masteryItem.createSpan({ cls: 'kt-mastery-topic', text: topic });
+                    const barTrack = masteryItem.createDiv({ cls: 'kt-mastery-track' });
+                    const barFill = barTrack.createDiv({ cls: 'kt-mastery-fill' });
+                    barFill.style.width = `${Math.round(mastery * 100)}%`;
+                    masteryItem.createSpan({ cls: 'kt-mastery-percent', text: `${Math.round(mastery * 100)}%` });
+                }
+            }
         }
 
         // Restart button

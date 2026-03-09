@@ -3,6 +3,7 @@ import { TrainerSettings, DEFAULT_SETTINGS, VIEW_TYPE_TRAINER, NoteChunk, IQuest
 import { NoteParser } from './parser';
 import { MockGenerator, ClaudeGenerator, OpenAIGenerator } from './generator';
 import { ProgressTracker } from './progress';
+import { QuestionCache } from './cache';
 import { TrainerSettingTab } from './settings';
 import { TrainerView } from './views/trainer-view';
 
@@ -10,6 +11,7 @@ export default class KnowledgeTrainerPlugin extends Plugin {
   settings!: TrainerSettings;
   parser!: NoteParser;
   progress!: ProgressTracker;
+  cache!: QuestionCache;
 
   async onload(): Promise<void> {
     await this.loadSettings();
@@ -17,6 +19,9 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     this.parser = new NoteParser(this.app);
     this.progress = new ProgressTracker(this.app, this.manifest.dir!);
     await this.progress.load();
+    this.cache = new QuestionCache(this.app, this.manifest.dir!);
+    await this.cache.load();
+    this.cache.clearExpired(7);
 
     this.registerView(VIEW_TYPE_TRAINER, (leaf: WorkspaceLeaf) => new TrainerView(leaf));
 
@@ -75,6 +80,8 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     const chunks = this.parser.chunkByHeadings(parsed);
     view.setSettings(this.settings);
     view.setGenerator(this.createGenerator());
+    view.setProgressTracker(this.progress);
+    view.setCache(this.cache);
     view.setNoteData(chunks, parsed.title);
   }
 
@@ -99,6 +106,8 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     const view = leaf.view as TrainerView;
     view.setSettings(this.settings);
     view.setGenerator(this.createGenerator());
+    view.setProgressTracker(this.progress);
+    view.setCache(this.cache);
     view.setNoteData(chunks, noteTitle);
   }
 

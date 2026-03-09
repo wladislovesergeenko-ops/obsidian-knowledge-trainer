@@ -6,12 +6,12 @@ AI-powered training plugin for Obsidian that generates flashcards, quizzes, and 
 
 ```
 src/
-  main.ts              # Plugin entry point, commands, ribbon icon
-  types.ts             # All shared TypeScript interfaces and constants
+  main.ts              # Plugin entry point, commands, ribbon icon, auto-update on file switch
+  types.ts             # All shared TypeScript interfaces, provider config, constants
   parser.ts            # NoteParser: reads .md files, chunks by headings
-  generator.ts         # MockGenerator + ClaudeGenerator (Anthropic API)
+  generator.ts         # MockGenerator + ClaudeGenerator + OpenAIGenerator
   progress.ts          # SM-2 spaced repetition algorithm, progress.json storage
-  settings.ts          # Plugin settings tab (API key, models, mock mode, etc.)
+  settings.ts          # Plugin settings tab (provider, API key, models, mock mode)
   views/
     trainer-view.ts           # Main ItemView, manages session flow
     session-start-component.ts # Start screen: current note info + format selection
@@ -19,17 +19,19 @@ src/
     quiz-component.ts         # 4-option quiz with correct/incorrect feedback
     open-question-component.ts # Free-text answer + AI evaluation
     results-component.ts      # Session results summary
+    dashboard-component.ts    # Progress dashboard with stats and mastery
 ```
 
 ## Key Design Decisions
 
-- **Current note mode**: plugin trains on the currently open note (not vault-wide selection)
+- **Current note mode**: plugin trains on the currently open note, auto-updates on file switch
 - **Mock mode** enabled by default (`useMockData: true`) — no API key needed for testing
-- **Two generators**: MockGenerator (hardcoded questions) and ClaudeGenerator (API calls)
-- **Models**: Haiku 4.5 for generation, Sonnet 4.6 for answer evaluation
-- **SM-2 algorithm** for spaced repetition (same as Anki)
+- **Three generators**: MockGenerator, ClaudeGenerator (Anthropic), OpenAIGenerator (OpenAI/OpenRouter/Custom)
+- **Multi-provider**: Anthropic, OpenAI, OpenRouter, any OpenAI-compatible API
+- **SM-2 algorithm** for spaced repetition (same as Anki), progress persisted to JSON
+- **Question caching** — generated questions cached per note hash, invalidated on content change
 - **CSS uses Obsidian variables** for dark/light theme compatibility
-- **Single-column quiz layout** — optimized for narrow sidebar panel
+- **Single-column layout** — optimized for narrow sidebar panel
 
 ## Build & Deploy
 
@@ -93,9 +95,12 @@ Rough estimate assuming 70% input / 30% output:
 
 ### What was built
 
-- 20 files, 3,387 lines of code
+- 20+ files, 3,700+ lines of code
 - Fully working Obsidian plugin with mock mode
 - 3 question formats: flashcards, quiz, open questions
-- SM-2 spaced repetition system
-- Claude API integration (ready for real use)
+- SM-2 spaced repetition system with progress tracking
+- Multi-provider: Anthropic, OpenAI, OpenRouter, Custom
+- Auto-update on file switch
+- Question caching to save API tokens
+- Progress dashboard with stats
 - 6 UI bug fixes during testing

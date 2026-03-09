@@ -5,18 +5,21 @@ export class SessionStartComponent {
     private chunks: NoteChunk[];
     private noteTitle: string;
     private onStart: (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => void;
+    private dueCount: number;
     private rootEl: HTMLElement | null = null;
 
     constructor(
         container: HTMLElement,
         chunks: NoteChunk[],
         noteTitle: string,
-        onStart: (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => void
+        onStart: (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => void,
+        dueCount: number = 0
     ) {
         this.container = container;
         this.chunks = chunks;
         this.noteTitle = noteTitle;
         this.onStart = onStart;
+        this.dueCount = dueCount;
         this.render();
     }
 
@@ -41,6 +44,13 @@ export class SessionStartComponent {
             text: `${this.chunks.length} ${this.getSectionsWord(this.chunks.length)} для изучения`,
             cls: 'kt-note-meta',
         });
+
+        if (this.dueCount > 0) {
+            noteInfo.createEl('p', {
+                text: `${this.dueCount} ${this.getCardsWord(this.dueCount)} на повторение`,
+                cls: 'kt-due-notice',
+            });
+        }
 
         // Question format section
         this.rootEl.createEl('h3', { text: 'Формат вопросов:' });
@@ -106,6 +116,12 @@ export class SessionStartComponent {
         if (n % 10 === 1 && n % 100 !== 11) return 'секция';
         if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'секции';
         return 'секций';
+    }
+
+    private getCardsWord(n: number): string {
+        if (n % 10 === 1 && n % 100 !== 11) return 'карточка';
+        if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'карточки';
+        return 'карточек';
     }
 
     destroy(): void {
