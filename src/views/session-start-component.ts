@@ -6,6 +6,7 @@ export class SessionStartComponent {
     private noteTitle: string;
     private onStart: (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => void;
     private dueCount: number;
+    private onDashboard: (() => void) | null;
     private rootEl: HTMLElement | null = null;
 
     constructor(
@@ -13,13 +14,15 @@ export class SessionStartComponent {
         chunks: NoteChunk[],
         noteTitle: string,
         onStart: (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => void,
-        dueCount: number = 0
+        dueCount: number = 0,
+        onDashboard: (() => void) | null = null
     ) {
         this.container = container;
         this.chunks = chunks;
         this.noteTitle = noteTitle;
         this.onStart = onStart;
         this.dueCount = dueCount;
+        this.onDashboard = onDashboard;
         this.render();
     }
 
@@ -110,6 +113,15 @@ export class SessionStartComponent {
 
             this.onStart(this.chunks, selectedTypes, count);
         });
+
+        // Dashboard button
+        if (this.onDashboard) {
+            const dashBtn = this.rootEl.createEl('button', {
+                text: 'Статистика',
+                cls: 'kt-nav-btn',
+            });
+            dashBtn.addEventListener('click', () => this.onDashboard!());
+        }
     }
 
     private getSectionsWord(n: number): string {

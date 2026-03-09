@@ -7,6 +7,7 @@ import { QuizComponent } from './quiz-component';
 import { OpenQuestionComponent } from './open-question-component';
 import { ResultsComponent } from './results-component';
 import { SessionStartComponent } from './session-start-component';
+import { DashboardComponent } from './dashboard-component';
 
 export class TrainerView extends ItemView {
     private settings!: TrainerSettings;
@@ -87,7 +88,8 @@ export class TrainerView extends ItemView {
             async (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => {
                 await this.startSession(selectedChunks, types, count);
             },
-            dueCount
+            dueCount,
+            () => this.showDashboard()
         );
     }
 
@@ -271,6 +273,23 @@ export class TrainerView extends ItemView {
                 this.showStartScreen();
             },
             progressStats
+        );
+    }
+
+    private showDashboard(): void {
+        this.destroyCurrentComponent();
+        this.contentEl.empty();
+
+        const stats = this.progressTracker ? this.progressTracker.getStats() : {
+            totalReviews: 0, streakDays: 0, lastReviewDate: '', masteryByTopic: {}
+        };
+        const dueCount = this.progressTracker ? this.progressTracker.getDueCards().length : 0;
+
+        this.currentComponent = new DashboardComponent(
+            this.contentEl,
+            stats,
+            dueCount,
+            () => this.showStartScreen()
         );
     }
 
