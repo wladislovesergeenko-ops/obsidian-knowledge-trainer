@@ -3,7 +3,7 @@
   "name": "Knowledge Trainer",
   "version": "1.0.0",
   "minAppVersion": "1.5.0",
-  "description": "AI-powered training from your notes: flashcards, quizzes, open questions",
+  "description": "AI-powered training from your notes: flashcards, quizzes, and open questions with AI evaluation.",
   "author": "Vladislav",
   "isDesktopOnly": false
 }
