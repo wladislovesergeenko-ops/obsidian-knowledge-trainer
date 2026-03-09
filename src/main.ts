@@ -1,7 +1,7 @@
 import { Plugin, WorkspaceLeaf, TFile } from 'obsidian';
-import { TrainerSettings, DEFAULT_SETTINGS, VIEW_TYPE_TRAINER, NoteChunk } from './types';
+import { TrainerSettings, DEFAULT_SETTINGS, VIEW_TYPE_TRAINER, NoteChunk, IQuestionGenerator } from './types';
 import { NoteParser } from './parser';
-import { MockGenerator, ClaudeGenerator } from './generator';
+import { MockGenerator, ClaudeGenerator, OpenAIGenerator } from './generator';
 import { ProgressTracker } from './progress';
 import { TrainerSettingTab } from './settings';
 import { TrainerView } from './views/trainer-view';
@@ -33,19 +33,49 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     });
 
     this.addSettingTab(new TrainerSettingTab(this.app, this));
+
+    // Auto-update when user switches to a different file
+    this.registerEvent(
+      this.app.workspace.on('active-leaf-change', () => {
+        this.updateViewIfOpen();
+      })
+    );
   }
 
   async activateView(): Promise<void> {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) {
-      // No file open — still open the view with empty state
-      await this.openView([], 'No file');
+      await this.openView([], 'Нет открытого файла');
       return;
     }
 
     const parsed = await this.parser.parseNote(activeFile);
     const chunks = this.parser.chunkByHeadings(parsed);
     await this.openView(chunks, parsed.title);
+  }
+
+  /**
+   * If trainer view is already open, update it with the current file's data.
+   * Does NOT open the view if it's not already visible.
+   */
+  private async updateViewIfOpen(): Promise<void> {
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_TRAINER);
+    if (existing.length === 0) return;
+
+    const view = existing[0].view as TrainerView;
+    if (view.isSessionActive()) return; // Don't interrupt an active session
+
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      view.setNoteData([], 'Нет открытого файла');
+      return;
+    }
+
+    const parsed = await this.parser.parseNote(activeFile);
+    const chunks = this.parser.chunkByHeadings(parsed);
+    view.setSettings(this.settings);
+    view.setGenerator(this.createGenerator());
+    view.setNoteData(chunks, parsed.title);
   }
 
   private async openView(chunks: NoteChunk[], noteTitle: string): Promise<void> {
@@ -67,22 +97,33 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     this.app.workspace.revealLeaf(leaf);
 
     const view = leaf.view as TrainerView;
-
     view.setSettings(this.settings);
+    view.setGenerator(this.createGenerator());
+    view.setNoteData(chunks, noteTitle);
+  }
 
-    let generator;
+  private createGenerator(): IQuestionGenerator {
     if (this.settings.useMockData) {
-      generator = new MockGenerator();
-    } else {
-      generator = new ClaudeGenerator(
+      return new MockGenerator();
+    }
+
+    if (this.settings.provider === 'anthropic') {
+      return new ClaudeGenerator(
         this.settings.apiKey,
         this.settings.generationModel,
         this.settings.evaluationModel,
         this.settings.language
       );
     }
-    view.setGenerator(generator);
-    view.setNoteData(chunks, noteTitle);
+
+    // OpenAI, OpenRouter, Custom — all use OpenAI-compatible API
+    return new OpenAIGenerator(
+      this.settings.apiKey,
+      this.settings.baseUrl,
+      this.settings.generationModel,
+      this.settings.evaluationModel,
+      this.settings.language
+    );
   }
 
   async loadSettings(): Promise<void> {

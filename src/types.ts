@@ -1,8 +1,12 @@
 import { TFile } from 'obsidian';
 
 // === Settings ===
+export type ApiProvider = 'anthropic' | 'openai' | 'openrouter' | 'custom';
+
 export interface TrainerSettings {
+  provider: ApiProvider;
   apiKey: string;
+  baseUrl: string;
   generationModel: string;
   evaluationModel: string;
   scanFolders: string[];
@@ -13,8 +17,17 @@ export interface TrainerSettings {
   useMockData: boolean;
 }
 
+export const PROVIDER_DEFAULTS: Record<ApiProvider, { baseUrl: string; genModel: string; evalModel: string }> = {
+  anthropic: { baseUrl: 'https://api.anthropic.com', genModel: 'claude-haiku-4-5-20251001', evalModel: 'claude-sonnet-4-6-20250514' },
+  openai: { baseUrl: 'https://api.openai.com', genModel: 'gpt-4o-mini', evalModel: 'gpt-4o' },
+  openrouter: { baseUrl: 'https://openrouter.ai/api', genModel: 'anthropic/claude-haiku-4-5-20251001', evalModel: 'anthropic/claude-sonnet-4-6-20250514' },
+  custom: { baseUrl: '', genModel: '', evalModel: '' },
+};
+
 export const DEFAULT_SETTINGS: TrainerSettings = {
+  provider: 'anthropic',
   apiKey: '',
+  baseUrl: 'https://api.anthropic.com',
   generationModel: 'claude-haiku-4-5-20251001',
   evaluationModel: 'claude-sonnet-4-6-20250514',
   scanFolders: [],

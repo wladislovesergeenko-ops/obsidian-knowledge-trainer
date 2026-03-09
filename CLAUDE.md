@@ -53,3 +53,49 @@ Vault path: `/Users/wladislove/Desktop/Vladislav/`
 - Flashcard used absolute positioning causing overflow — switched to display toggle
 - Quiz 2x2 grid caused text overflow in sidebar — changed to single column
 - Container `max-width: 700px` caused clipping in sidebar — removed
+
+## Development Cost (2026-03-09)
+
+Built in one session using Claude Code (Opus 4.6).
+
+### Token Usage
+
+| Component | Tokens | Duration |
+|-----------|--------|----------|
+| Agent: Scaffold (configs, CSS) | 26,747 | 145s |
+| Agent: Core logic (types, parser, generator) | 32,578 | 141s |
+| Agent: UI views (6 components) | 38,540 | 297s |
+| Agent: Progress, settings, main | 32,407 | 128s |
+| **Agents total** | **130,272** | **~5 min** |
+| Main conversation (planning + bug fixes) | ~150,000 (est.) | ~20 min |
+| **Grand total** | **~280,000** | **~25 min** |
+
+### Estimated API Cost
+
+Model: Claude Opus 4.6 ($15/M input, $75/M output)
+
+Rough estimate assuming 70% input / 30% output:
+- Input: ~196K tokens = ~$2.94
+- Output: ~84K tokens = ~$6.30
+- **Total: ~$9-10**
+
+### Parallel Agents Strategy
+
+Ключевое решение — запуск **4 агентов параллельно** вместо последовательной разработки:
+
+1. Каждый агент работал в изолированном контексте (~30K tokens каждый)
+2. Все 4 завершились за ~5 минут (вместо ~20 минут последовательно)
+3. Основной контекст разговора остался чистым — не засорился тысячами строк кода
+4. **Не потребовалось сжатие контекста** — без агентов ~130K tokens кода попали бы в основной контекст, что привело бы к context compression и потере деталей ранних решений
+5. После сборки агентов основной контекст использовался только для точечных баг-фиксов — быстро и дёшево
+
+**Вывод:** параллельные агенты дали выигрыш и по времени (~4x быстрее), и по качеству (каждый агент фокусировался на своём модуле с полным контекстом типов).
+
+### What was built
+
+- 20 files, 3,387 lines of code
+- Fully working Obsidian plugin with mock mode
+- 3 question formats: flashcards, quiz, open questions
+- SM-2 spaced repetition system
+- Claude API integration (ready for real use)
+- 6 UI bug fixes during testing

@@ -31,6 +31,10 @@ export class TrainerView extends ItemView {
         return 'brain';
     }
 
+    isSessionActive(): boolean {
+        return this.questions.length > 0;
+    }
+
     setSettings(settings: TrainerSettings): void {
         this.settings = settings;
     }

@@ -431,3 +431,181 @@ ${typeDescriptions}
     return `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 }
+
+// ============================================================
+// OpenAIGenerator — works with OpenAI, OpenRouter, and any
+// OpenAI-compatible API (Groq, Together, Ollama, etc.)
+// ============================================================
+export class OpenAIGenerator implements IQuestionGenerator {
+  constructor(
+    private apiKey: string,
+    private baseUrl: string,
+    private genModel: string,
+    private evalModel: string,
+    private language: string
+  ) {}
+
+  async generateQuestions(
+    chunks: NoteChunk[],
+    types: QuestionType[],
+    count: number
+  ): Promise<Question[]> {
+    if (chunks.length === 0) return [];
+
+    const lang = this.language === 'ru' ? 'русском' : 'английском';
+    const typeDescriptions = types
+      .map((t) => {
+        switch (t) {
+          case 'flashcard': return '"flashcard" — карточка с вопросом и ответом';
+          case 'quiz': return '"quiz" — тест с 4 вариантами ответа';
+          case 'open': return '"open" — открытый вопрос с развёрнутым ответом';
+        }
+      })
+      .join('\n');
+
+    const systemPrompt = `Ты — генератор учебных вопросов. Создавай вопросы на ${lang} языке на основе предоставленного материала.
+
+Формат ответа — строго JSON-массив объектов. Никакого текста вне JSON.
+
+Типы вопросов:
+${typeDescriptions}
+
+Структура каждого объекта:
+
+Для flashcard:
+{"type": "flashcard", "question": "...", "answer": "..."}
+
+Для quiz:
+{"type": "quiz", "question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "..."}
+
+Для open:
+{"type": "open", "question": "...", "rubric": "Критерии оценки...", "referenceAnswer": "..."}
+
+Верни JSON-массив из ${count} вопросов. Распредели типы пропорционально запросу.
+Вопросы должны проверять понимание, а не механическое запоминание.`;
+
+    const contentSummary = chunks
+      .map((chunk) => `### ${chunk.heading} (из заметки "${chunk.noteTitle}")\n${chunk.content}`)
+      .join('\n\n---\n\n');
+
+    const userPrompt = `Материал для вопросов:\n\n${contentSummary}\n\nСгенерируй ${count} вопросов следующих типов: ${types.join(', ')}.`;
+
+    try {
+      const response = await requestUrl({
+        url: `${this.baseUrl}/v1/chat/completions`,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.genModel,
+          max_tokens: 2000,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      const data = response.json;
+      const textContent = data.choices?.[0]?.message?.content;
+      if (!textContent) {
+        console.error('Knowledge Trainer: Empty response from OpenAI-compatible API');
+        return [];
+      }
+
+      const parsed = this.extractJson(textContent);
+      if (!Array.isArray(parsed)) return [];
+
+      const sourceNote = chunks[0].noteTitle;
+      return parsed.map((item: any) => this.mapToQuestion(item, sourceNote));
+    } catch (error) {
+      console.error('Knowledge Trainer: Failed to generate questions', error);
+      return [];
+    }
+  }
+
+  async evaluateAnswer(
+    question: OpenQuestion,
+    userAnswer: string
+  ): Promise<EvaluationResult> {
+    const lang = this.language === 'ru' ? 'русском' : 'английском';
+
+    const systemPrompt = `Ты — преподаватель, оценивающий ответ студента. Отвечай на ${lang} языке.
+
+Оцени ответ по шкале от 1 до 5:
+1 — полностью неверно
+2 — есть отдельные верные элементы
+3 — частично верно, но есть существенные пробелы
+4 — в целом верно, незначительные неточности
+5 — отлично, полный и точный ответ
+
+Верни строго JSON:
+{"score": <число от 1 до 5>, "feedback": "Подробный комментарий...", "referenceAnswer": "Эталонный ответ..."}`;
+
+    const userPrompt = `Вопрос: ${question.question}\n\nКритерии оценки: ${question.rubric}\n\nЭталонный ответ: ${question.referenceAnswer}\n\nОтвет студента: ${userAnswer}\n\nОцени ответ студента.`;
+
+    try {
+      const response = await requestUrl({
+        url: `${this.baseUrl}/v1/chat/completions`,
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: this.evalModel,
+          max_tokens: 1000,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      const data = response.json;
+      const textContent = data.choices?.[0]?.message?.content;
+      if (!textContent) {
+        return { score: 3, feedback: 'Ошибка оценки', referenceAnswer: question.referenceAnswer };
+      }
+
+      const parsed = this.extractJson(textContent);
+      return {
+        score: parsed.score ?? 3,
+        feedback: parsed.feedback ?? 'Ошибка оценки',
+        referenceAnswer: parsed.referenceAnswer ?? question.referenceAnswer,
+      };
+    } catch (error) {
+      console.error('Knowledge Trainer: Failed to evaluate answer', error);
+      return { score: 3, feedback: 'Ошибка оценки', referenceAnswer: question.referenceAnswer };
+    }
+  }
+
+  private extractJson(text: string): any {
+    try { return JSON.parse(text); } catch { /* continue */ }
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      try { return JSON.parse(codeBlockMatch[1].trim()); } catch { /* continue */ }
+    }
+    const jsonMatch = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+    if (jsonMatch) {
+      try { return JSON.parse(jsonMatch[1]); } catch { /* continue */ }
+    }
+    return [];
+  }
+
+  private mapToQuestion(item: any, sourceNote: string): Question {
+    const id = `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    switch (item.type) {
+      case 'flashcard':
+        return { id, type: 'flashcard', sourceNote, question: item.question || '', answer: item.answer || '' } as FlashcardQuestion;
+      case 'quiz':
+        return { id, type: 'quiz', sourceNote, question: item.question || '', options: item.options || [], correctIndex: item.correctIndex ?? 0, explanation: item.explanation || '' } as QuizQuestion;
+      case 'open':
+        return { id, type: 'open', sourceNote, question: item.question || '', rubric: item.rubric || '', referenceAnswer: item.referenceAnswer || '' } as OpenQuestion;
+      default:
+        return { id, type: 'flashcard', sourceNote, question: item.question || '', answer: item.answer || '' } as FlashcardQuestion;
+    }
+  }
+}
