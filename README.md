@@ -78,8 +78,9 @@ Progress is tracked using the SM-2 algorithm (same as Anki). Questions you strug
 
 If you find this plugin useful, consider supporting development:
 
-- [Buy Me a Coffee](https://buymeacoffee.com/)
-- [GitHub Sponsors](https://github.com/sponsors/)
+- [Boosty](https://boosty.to/) — подписка или разовый донат
+- Crypto: BTC / USDT (TRC-20) — адреса в разделе ниже
+- Telegram: напишите автору для прямого перевода
 
 ## License
 
