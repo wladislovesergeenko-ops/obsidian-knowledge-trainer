@@ -102,7 +102,7 @@ Track your learning progress:
 
 If you find this plugin useful, consider supporting development:
 
-- [Boosty](https://boosty.to/) — subscription or one-time donation
+- [Boosty](https://boosty.to/wladislove/donate) — subscription or one-time donation
 - Crypto: BTC / USDT (TRC-20)
 - Telegram: contact the author directly
 
