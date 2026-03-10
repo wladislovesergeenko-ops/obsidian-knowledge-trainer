@@ -112,8 +112,11 @@ export class TrainerView extends ItemView {
             cached = this.cache.getQuestions(notePath, contentHash);
         }
 
-        if (cached && cached.length > 0) {
-            this.questions = cached;
+        // Filter cached questions by selected types
+        const filtered = cached ? cached.filter(q => types.includes(q.type)) : [];
+
+        if (filtered.length > 0) {
+            this.questions = filtered.slice(0, count);
         } else {
             try {
                 this.questions = await this.generator.generateQuestions(selectedChunks, types, count);
