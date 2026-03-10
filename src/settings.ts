@@ -18,20 +18,18 @@ export class TrainerSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName('Knowledge trainer').setHeading();
-
     // === Provider ===
     new Setting(containerEl).setName('API provider').setHeading();
 
     new Setting(containerEl)
       .setName('Provider')
-      .setDesc('Выберите AI-провайдер для генерации вопросов')
+      .setDesc('Select an AI provider for generating questions')
       .addDropdown((dropdown) => {
         dropdown
-          .addOption('anthropic', 'Anthropic (Claude)')
-          .addOption('openai', 'OpenAI (GPT)')
-          .addOption('openrouter', 'OpenRouter (любые модели)')
-          .addOption('custom', 'Custom (свой URL)')
+          .addOption('anthropic', 'Anthropic')
+          .addOption('openai', 'OpenAI')
+          .addOption('openrouter', 'OpenRouter')
+          .addOption('custom', 'Custom')
           .setValue(this.plugin.settings.provider)
           .onChange(async (value) => {
             const provider = value as ApiProvider;

@@ -29,7 +29,7 @@ export class SessionStartComponent {
     render(): void {
         this.rootEl = this.container.createDiv({ cls: 'kt-start-screen' });
 
-        this.rootEl.createEl('h2', { text: 'Knowledge Trainer' });
+        this.rootEl.createEl('h2', { text: 'Knowledge trainer' });
 
         if (this.chunks.length === 0) {
             this.rootEl.createEl('p', {

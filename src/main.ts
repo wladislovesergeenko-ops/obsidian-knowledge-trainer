@@ -25,7 +25,7 @@ export default class KnowledgeTrainerPlugin extends Plugin {
 
     this.registerView(VIEW_TYPE_TRAINER, (leaf: WorkspaceLeaf) => new TrainerView(leaf));
 
-    this.addRibbonIcon('brain', 'Knowledge Trainer', () => {
+    this.addRibbonIcon('brain', 'Knowledge trainer', () => {
       void this.activateView();
     });
 
@@ -101,7 +101,7 @@ export default class KnowledgeTrainerPlugin extends Plugin {
       leaf = rightLeaf;
     }
 
-    this.app.workspace.revealLeaf(leaf);
+    await this.app.workspace.revealLeaf(leaf);
 
     const view = leaf.view as TrainerView;
     view.setSettings(this.settings);

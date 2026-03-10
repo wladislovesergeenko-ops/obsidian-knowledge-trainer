@@ -29,7 +29,7 @@ export class TrainerView extends ItemView {
     }
 
     getDisplayText(): string {
-        return 'Knowledge Trainer';
+        return 'Knowledge trainer';
     }
 
     getIcon(): string {
@@ -65,7 +65,7 @@ export class TrainerView extends ItemView {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/require-await
+    // eslint-disable-next-line @typescript-eslint/require-await -- onOpen must return Promise<void> to satisfy ItemView interface
     async onOpen(): Promise<void> {
         this.contentEl.empty();
         this.contentEl.addClass('kt-container');
@@ -214,7 +214,7 @@ export class TrainerView extends ItemView {
                     question,
                     (score: number, answer: string) => {
                         onResult(score, answer);
-                        const nextBtn = questionContainer.querySelector('.kt-nav-next') as HTMLButtonElement | null;
+                        const nextBtn = questionContainer.querySelector('.kt-nav-next');
                         if (nextBtn) {
                             nextBtn.addEventListener('click', () => {
                                 this.showQuestion(index + 1);
@@ -230,7 +230,7 @@ export class TrainerView extends ItemView {
                     this.generator,
                     (score: number, answer: string) => {
                         onResult(score, answer);
-                        const nextBtn = questionContainer.querySelector('.kt-nav-next') as HTMLButtonElement | null;
+                        const nextBtn = questionContainer.querySelector('.kt-nav-next');
                         if (nextBtn) {
                             nextBtn.addEventListener('click', () => {
                                 this.showQuestion(index + 1);
@@ -314,7 +314,7 @@ export class TrainerView extends ItemView {
         }
     }
 
-    // eslint-disable-next-line @typescript-eslint/require-await
+    // eslint-disable-next-line @typescript-eslint/require-await -- onClose must return Promise<void> to satisfy ItemView interface
     async onClose(): Promise<void> {
         this.destroyCurrentComponent();
         this.contentEl.empty();
