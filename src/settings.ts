@@ -1,7 +1,7 @@
-import { App, PluginSettingTab, Setting } from 'obsidian';
+import { App, Plugin, PluginSettingTab, Setting } from 'obsidian';
 import { TrainerSettings, ApiProvider, PROVIDER_DEFAULTS } from './types';
 
-interface KnowledgeTrainerPlugin {
+interface KnowledgeTrainerPlugin extends Plugin {
   settings: TrainerSettings;
   saveSettings(): Promise<void>;
 }
@@ -10,7 +10,7 @@ export class TrainerSettingTab extends PluginSettingTab {
   private plugin: KnowledgeTrainerPlugin;
 
   constructor(app: App, plugin: KnowledgeTrainerPlugin) {
-    super(app, plugin as any);
+    super(app, plugin);
     this.plugin = plugin;
   }
 
@@ -18,13 +18,13 @@ export class TrainerSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl('h2', { text: 'Knowledge Trainer Settings' });
+    new Setting(containerEl).setName('Knowledge trainer').setHeading();
 
     // === Provider ===
-    containerEl.createEl('h3', { text: 'API провайдер' });
+    new Setting(containerEl).setName('API provider').setHeading();
 
     new Setting(containerEl)
-      .setName('Провайдер')
+      .setName('Provider')
       .setDesc('Выберите AI-провайдер для генерации вопросов')
       .addDropdown((dropdown) => {
         dropdown
@@ -57,7 +57,7 @@ export class TrainerSettingTab extends PluginSettingTab {
     };
 
     new Setting(containerEl)
-      .setName('API Key')
+      .setName('API key')
       .setDesc('API ключ выбранного провайдера')
       .addText((text) => {
         text.inputEl.type = 'password';
@@ -87,10 +87,10 @@ export class TrainerSettingTab extends PluginSettingTab {
     }
 
     // === Models ===
-    containerEl.createEl('h3', { text: 'Модели' });
+    new Setting(containerEl).setName('Models').setHeading();
 
     new Setting(containerEl)
-      .setName('Модель для генерации')
+      .setName('Generation model')
       .setDesc('Более дешёвая модель для генерации вопросов')
       .addText((text) => {
         text
@@ -103,7 +103,7 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Модель для оценки')
+      .setName('Evaluation model')
       .setDesc('Более умная модель для оценки открытых ответов')
       .addText((text) => {
         text
@@ -116,10 +116,10 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     // === Training ===
-    containerEl.createEl('h3', { text: 'Тренировка' });
+    new Setting(containerEl).setName('Training').setHeading();
 
     new Setting(containerEl)
-      .setName('Вопросов за сессию')
+      .setName('Questions per session')
       .setDesc('Количество вопросов в одной тренировке')
       .addSlider((slider) => {
         slider
@@ -133,7 +133,7 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Язык вопросов')
+      .setName('Question language')
       .setDesc('Язык генерируемых вопросов')
       .addDropdown((dropdown) => {
         dropdown
@@ -147,7 +147,7 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Mock режим')
+      .setName('Mock mode')
       .setDesc('Тестовые данные вместо API (для разработки)')
       .addToggle((toggle) => {
         toggle
@@ -159,10 +159,10 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     // === Format ratios ===
-    containerEl.createEl('h3', { text: 'Соотношение форматов' });
+    new Setting(containerEl).setName('Format ratios').setHeading();
 
     new Setting(containerEl)
-      .setName('Флеш-карточки %')
+      .setName('Flashcards %')
       .addSlider((slider) => {
         slider
           .setLimits(0, 100, 10)
@@ -175,7 +175,7 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Квизы %')
+      .setName('Quizzes %')
       .addSlider((slider) => {
         slider
           .setLimits(0, 100, 10)
@@ -188,7 +188,7 @@ export class TrainerSettingTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName('Открытые вопросы %')
+      .setName('Open questions %')
       .addSlider((slider) => {
         slider
           .setLimits(0, 100, 10)

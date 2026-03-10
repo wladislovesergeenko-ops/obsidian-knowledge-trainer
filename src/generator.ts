@@ -10,16 +10,32 @@ import {
   EvaluationResult,
 } from './types';
 
+interface RawQuestion {
+  type?: string;
+  question?: string;
+  answer?: string;
+  options?: string[];
+  correctIndex?: number;
+  explanation?: string;
+  rubric?: string;
+  referenceAnswer?: string;
+}
+
+interface RawEvaluation {
+  score?: number;
+  feedback?: string;
+  referenceAnswer?: string;
+}
+
 // ============================================================
 // MockGenerator — hardcoded questions for development/testing
 // ============================================================
 export class MockGenerator implements IQuestionGenerator {
-  async generateQuestions(
+  generateQuestions(
     chunks: NoteChunk[],
     types: QuestionType[],
     count: number
   ): Promise<Question[]> {
-    const questions: Question[] = [];
     const sourceNote = chunks.length > 0 ? chunks[0].noteTitle : 'Telegram-канал';
 
     // --- Flashcards ---
@@ -147,19 +163,19 @@ export class MockGenerator implements IQuestionGenerator {
     }
 
     // Return up to the requested count
-    return allMocks.slice(0, count);
+    return Promise.resolve(allMocks.slice(0, count));
   }
 
-  async evaluateAnswer(
+  evaluateAnswer(
     question: OpenQuestion,
-    userAnswer: string
+    _userAnswer: string
   ): Promise<EvaluationResult> {
-    return {
+    return Promise.resolve({
       score: 4,
       feedback:
         'Хороший ответ! Вы продемонстрировали понимание основных концепций. Для более высокой оценки добавьте конкретные примеры и углубите анализ.',
       referenceAnswer: question.referenceAnswer,
-    };
+    });
   }
 
   private generateId(): string {
@@ -267,8 +283,8 @@ ${typeDescriptions}
       }
 
       const sourceNote = chunks[0].noteTitle;
-      return parsed.map((item: any) => this.mapToQuestion(item, sourceNote));
-    } catch (error) {
+      return (parsed as RawQuestion[]).map((item) => this.mapToQuestion(item, sourceNote));
+    } catch (error: unknown) {
       console.error('Knowledge Trainer: Failed to generate questions', error);
       return [];
     }
@@ -335,13 +351,13 @@ ${typeDescriptions}
         };
       }
 
-      const parsed = this.extractJson(textContent);
+      const parsed = this.extractJson(textContent) as RawEvaluation;
       return {
         score: parsed.score ?? 3,
         feedback: parsed.feedback ?? 'Ошибка оценки',
         referenceAnswer: parsed.referenceAnswer ?? question.referenceAnswer,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Knowledge Trainer: Failed to evaluate answer', error);
       return {
         score: 3,
@@ -351,7 +367,7 @@ ${typeDescriptions}
     }
   }
 
-  private extractJson(text: string): any {
+  private extractJson(text: string): unknown {
     // Try parsing the full text as JSON first
     try {
       return JSON.parse(text);
@@ -381,7 +397,7 @@ ${typeDescriptions}
     }
   }
 
-  private mapToQuestion(item: any, sourceNote: string): Question {
+  private mapToQuestion(item: RawQuestion, sourceNote: string): Question {
     const id = `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
     switch (item.type) {
@@ -392,7 +408,7 @@ ${typeDescriptions}
           sourceNote,
           question: item.question || '',
           answer: item.answer || '',
-        } as FlashcardQuestion;
+        };
 
       case 'quiz':
         return {
@@ -403,7 +419,7 @@ ${typeDescriptions}
           options: item.options || [],
           correctIndex: item.correctIndex ?? 0,
           explanation: item.explanation || '',
-        } as QuizQuestion;
+        };
 
       case 'open':
         return {
@@ -413,22 +429,18 @@ ${typeDescriptions}
           question: item.question || '',
           rubric: item.rubric || '',
           referenceAnswer: item.referenceAnswer || '',
-        } as OpenQuestion;
+        };
 
       default:
         // Default to flashcard if type is unrecognized
         return {
           id,
-          type: 'flashcard',
+          type: 'flashcard' as const,
           sourceNote,
           question: item.question || '',
           answer: item.answer || '',
-        } as FlashcardQuestion;
+        };
     }
-  }
-
-  private generateId(): string {
-    return `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 }
 
@@ -519,8 +531,8 @@ ${typeDescriptions}
       if (!Array.isArray(parsed)) return [];
 
       const sourceNote = chunks[0].noteTitle;
-      return parsed.map((item: any) => this.mapToQuestion(item, sourceNote));
-    } catch (error) {
+      return (parsed as RawQuestion[]).map((item) => this.mapToQuestion(item, sourceNote));
+    } catch (error: unknown) {
       console.error('Knowledge Trainer: Failed to generate questions', error);
       return [];
     }
@@ -570,19 +582,19 @@ ${typeDescriptions}
         return { score: 3, feedback: 'Ошибка оценки', referenceAnswer: question.referenceAnswer };
       }
 
-      const parsed = this.extractJson(textContent);
+      const parsed = this.extractJson(textContent) as RawEvaluation;
       return {
         score: parsed.score ?? 3,
         feedback: parsed.feedback ?? 'Ошибка оценки',
         referenceAnswer: parsed.referenceAnswer ?? question.referenceAnswer,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Knowledge Trainer: Failed to evaluate answer', error);
       return { score: 3, feedback: 'Ошибка оценки', referenceAnswer: question.referenceAnswer };
     }
   }
 
-  private extractJson(text: string): any {
+  private extractJson(text: string): unknown {
     try { return JSON.parse(text); } catch { /* continue */ }
     const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (codeBlockMatch) {
@@ -595,17 +607,17 @@ ${typeDescriptions}
     return [];
   }
 
-  private mapToQuestion(item: any, sourceNote: string): Question {
+  private mapToQuestion(item: RawQuestion, sourceNote: string): Question {
     const id = `q_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
     switch (item.type) {
       case 'flashcard':
-        return { id, type: 'flashcard', sourceNote, question: item.question || '', answer: item.answer || '' } as FlashcardQuestion;
+        return { id, type: 'flashcard', sourceNote, question: item.question || '', answer: item.answer || '' };
       case 'quiz':
-        return { id, type: 'quiz', sourceNote, question: item.question || '', options: item.options || [], correctIndex: item.correctIndex ?? 0, explanation: item.explanation || '' } as QuizQuestion;
+        return { id, type: 'quiz', sourceNote, question: item.question || '', options: item.options || [], correctIndex: item.correctIndex ?? 0, explanation: item.explanation || '' };
       case 'open':
-        return { id, type: 'open', sourceNote, question: item.question || '', rubric: item.rubric || '', referenceAnswer: item.referenceAnswer || '' } as OpenQuestion;
+        return { id, type: 'open', sourceNote, question: item.question || '', rubric: item.rubric || '', referenceAnswer: item.referenceAnswer || '' };
       default:
-        return { id, type: 'flashcard', sourceNote, question: item.question || '', answer: item.answer || '' } as FlashcardQuestion;
+        return { id, type: 'flashcard' as const, sourceNote, question: item.question || '', answer: item.answer || '' };
     }
   }
 }

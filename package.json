@@ -1,6 +1,6 @@
 {
   "name": "obsidian-knowledge-trainer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "AI-powered training from your notes: flashcards, quizzes, open questions",
   "main": "main.js",
   "scripts": {

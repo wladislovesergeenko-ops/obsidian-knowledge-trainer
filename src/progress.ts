@@ -1,5 +1,5 @@
 import { App } from 'obsidian';
-import { ProgressData, CardProgress, ReviewEntry, QuestionType } from './types';
+import { ProgressData, ReviewEntry, QuestionType } from './types';
 
 function today(): string {
   return new Date().toISOString().split('T')[0];
@@ -154,7 +154,7 @@ export class ProgressTracker {
     const sum = recentScores.reduce((a, b) => a + b, 0);
     this.data.stats.masteryByTopic[sourceNote] = sum / (5 * 5); // max score is 5, 5 reviews
 
-    this.save();
+    void this.save();
   }
 
   getDueCards(): string[] {

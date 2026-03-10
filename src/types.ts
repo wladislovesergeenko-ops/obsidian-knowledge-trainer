@@ -1,5 +1,3 @@
-import { TFile } from 'obsidian';
-
 // === Settings ===
 export type ApiProvider = 'anthropic' | 'openai' | 'openrouter' | 'custom';
 

@@ -31,7 +31,7 @@ export class QuizComponent {
             const optionBtn = optionsContainer.createEl('button', {
                 text: this.question.options[i],
                 cls: 'kt-quiz-option',
-            }) as HTMLButtonElement;
+            });
             optionButtons.push(optionBtn);
 
             optionBtn.addEventListener('click', () => {

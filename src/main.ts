@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf, TFile } from 'obsidian';
+import { Plugin, WorkspaceLeaf } from 'obsidian';
 import { TrainerSettings, DEFAULT_SETTINGS, VIEW_TYPE_TRAINER, NoteChunk, IQuestionGenerator } from './types';
 import { NoteParser } from './parser';
 import { MockGenerator, ClaudeGenerator, OpenAIGenerator } from './generator';
@@ -26,14 +26,14 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     this.registerView(VIEW_TYPE_TRAINER, (leaf: WorkspaceLeaf) => new TrainerView(leaf));
 
     this.addRibbonIcon('brain', 'Knowledge Trainer', () => {
-      this.activateView();
+      void this.activateView();
     });
 
     this.addCommand({
       id: 'start-training',
       name: 'Start training session',
       callback: () => {
-        this.activateView();
+        void this.activateView();
       },
     });
 
@@ -42,7 +42,7 @@ export default class KnowledgeTrainerPlugin extends Plugin {
     // Auto-update when user switches to a different file
     this.registerEvent(
       this.app.workspace.on('active-leaf-change', () => {
-        this.updateViewIfOpen();
+        void this.updateViewIfOpen();
       })
     );
   }

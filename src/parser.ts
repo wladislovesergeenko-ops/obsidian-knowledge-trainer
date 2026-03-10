@@ -1,10 +1,10 @@
-import { App, TFile, TFolder, CachedMetadata, getAllTags } from 'obsidian';
+import { App, TFile, CachedMetadata, getAllTags } from 'obsidian';
 import { TrainerSettings, ParsedNote, NoteChunk } from './types';
 
 export class NoteParser {
   constructor(private app: App) {}
 
-  async scanVault(settings: TrainerSettings): Promise<TFile[]> {
+  scanVault(settings: TrainerSettings): TFile[] {
     const allFiles = this.app.vault.getMarkdownFiles();
     const hasFolderFilter = settings.scanFolders.length > 0;
     const hasTagFilter = settings.scanTags.length > 0;

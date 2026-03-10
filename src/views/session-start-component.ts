@@ -71,7 +71,7 @@ export class SessionStartComponent {
         for (const opt of typeOptions) {
             const typeItem = typesContainer.createDiv({ cls: 'kt-type-item' });
             const label = typeItem.createEl('label', { cls: 'kt-type-label' });
-            const checkbox = label.createEl('input', { type: 'checkbox' }) as HTMLInputElement;
+            const checkbox = label.createEl('input', { type: 'checkbox' });
             checkbox.checked = true;
             label.createSpan({ text: ` ${opt.label}` });
             typeCheckboxes.push({ checkbox, type: opt.type });
@@ -83,7 +83,7 @@ export class SessionStartComponent {
         const countInput = countContainer.createEl('input', {
             type: 'number',
             cls: 'kt-count-input',
-        }) as HTMLInputElement;
+        });
         countInput.value = '5';
         countInput.min = '1';
         countInput.max = '30';

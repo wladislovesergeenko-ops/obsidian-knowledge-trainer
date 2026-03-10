@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf } from 'obsidian';
+import { ItemView } from 'obsidian';
 import { VIEW_TYPE_TRAINER, Question, QuestionResult, SessionResult, TrainerSettings, IQuestionGenerator, NoteChunk, QuestionType } from '../types';
 import { ProgressTracker } from '../progress';
 import { QuestionCache } from '../cache';
@@ -65,6 +65,7 @@ export class TrainerView extends ItemView {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async onOpen(): Promise<void> {
         this.contentEl.empty();
         this.contentEl.addClass('kt-container');
@@ -85,8 +86,8 @@ export class TrainerView extends ItemView {
             this.contentEl,
             this.availableChunks,
             this.noteTitle,
-            async (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => {
-                await this.startSession(selectedChunks, types, count);
+            (selectedChunks: NoteChunk[], types: QuestionType[], count: number) => {
+                void this.startSession(selectedChunks, types, count);
             },
             dueCount,
             () => this.showDashboard()
@@ -116,7 +117,7 @@ export class TrainerView extends ItemView {
         } else {
             try {
                 this.questions = await this.generator.generateQuestions(selectedChunks, types, count);
-            } catch (error) {
+            } catch {
                 loading.setText('Ошибка при генерации вопросов. Попробуйте ещё раз.');
                 const retryBtn = this.contentEl.createEl('button', {
                     text: 'Назад',
@@ -313,6 +314,7 @@ export class TrainerView extends ItemView {
         }
     }
 
+    // eslint-disable-next-line @typescript-eslint/require-await
     async onClose(): Promise<void> {
         this.destroyCurrentComponent();
         this.contentEl.empty();
