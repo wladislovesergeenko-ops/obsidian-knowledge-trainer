@@ -112,10 +112,21 @@ export class TrainerView extends ItemView {
             cached = this.cache.getQuestions(notePath, contentHash);
         }
 
-        // Filter cached questions by selected types
-        const filtered = cached ? cached.filter(q => types.includes(q.type)) : [];
+        // Filter cached questions by selected types and spaced repetition
+        let filtered = cached ? cached.filter(q => types.includes(q.type)) : [];
 
-        if (filtered.length > 0) {
+        // Exclude questions that were already reviewed and aren't due yet
+        if (filtered.length > 0 && this.progressTracker) {
+            const dueSet = new Set(this.progressTracker.getDueCards());
+            const progressData = this.progressTracker.getData();
+            filtered = filtered.filter(q => {
+                const card = progressData.cards[q.id];
+                // Show if never reviewed OR if due for review
+                return !card || dueSet.has(q.id);
+            });
+        }
+
+        if (filtered.length >= count) {
             this.questions = filtered.slice(0, count);
         } else {
             try {
